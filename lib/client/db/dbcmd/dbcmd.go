@@ -59,9 +59,9 @@ const (
 	snowsqlBin = "snowsql"
 )
 
-// execer is an abstraction of Go's exec module, as this one doesn't specify any interfaces.
+// Execer is an abstraction of Go's exec module, as this one doesn't specify any interfaces.
 // This interface exists only to enable mocking.
-type execer interface {
+type Execer interface {
 	// RunCommand runs a system command.
 	RunCommand(name string, arg ...string) ([]byte, error)
 	// LookPath returns a full path to a binary if this one is found in system PATH,
@@ -71,21 +71,21 @@ type execer interface {
 	Command(name string, arg ...string) *exec.Cmd
 }
 
-// systemExecer implements execer interface by using Go exec module.
-type systemExecer struct{}
+// SystemExecer implements execer interface by using Go exec module.
+type SystemExecer struct{}
 
 // RunCommand is a wrapper for exec.Command(...).Output()
-func (s systemExecer) RunCommand(name string, arg ...string) ([]byte, error) {
+func (s SystemExecer) RunCommand(name string, arg ...string) ([]byte, error) {
 	return exec.Command(name, arg...).Output()
 }
 
 // LookPath is a wrapper for exec.LookPath(...)
-func (s systemExecer) LookPath(file string) (string, error) {
+func (s SystemExecer) LookPath(file string) (string, error) {
 	return exec.LookPath(file)
 }
 
 // Command is a wrapper for exec.Command(...)
-func (s systemExecer) Command(name string, arg ...string) *exec.Cmd {
+func (s SystemExecer) Command(name string, arg ...string) *exec.Cmd {
 	return exec.Command(name, arg...)
 }
 
@@ -102,7 +102,7 @@ type CLICommandBuilder struct {
 	options     connectionCommandOpts
 	uid         utils.UID
 
-	exe execer
+	exe Execer
 }
 
 func NewCmdBuilder(tc *client.TeleportClient, profile *client.ProfileStatus,
@@ -134,7 +134,7 @@ func NewCmdBuilder(tc *client.TeleportClient, profile *client.ProfileStatus,
 		rootCluster: rootClusterName,
 		uid:         utils.NewRealUID(),
 
-		exe: &systemExecer{},
+		exe: &SystemExecer{},
 	}
 }
 
