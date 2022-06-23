@@ -239,3 +239,11 @@ const (
 	// session recording fails.
 	SessionRecordingModeBestEffort = SessionRecordingMode("best_effort")
 )
+
+// /etc/os-release IDs
+const (
+	Ubuntu = "ubuntu"
+	Debian = "debian"
+	RHEL   = "rhel"
+	AZL2   = "amzn"
+)
