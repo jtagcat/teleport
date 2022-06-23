@@ -165,7 +165,10 @@ func (c *SessionContext) GetUserClient(site reversetunnel.RemoteSite) (auth.Clie
 		// we'll save the remote client in our session context so we don't have to
 		// build a new connection next time. all remote clients will be closed when
 		// the session context is closed.
-		c.addRemoteClient(site, rClt)
+		err = c.addRemoteClient(site, rClt)
+		if err != nil {
+			c.log.WithError(err).Info("Failed closing stale remote client for site: ", site.GetName())
+		}
 
 		return rClt, nil
 	}
@@ -199,7 +202,7 @@ func (c *SessionContext) tryRemoteTLSClient(cluster reversetunnel.RemoteSite) (a
 	}
 	_, err = clt.GetDomainName(context.TODO())
 	if err != nil {
-		return clt, trace.Wrap(err)
+		return nil, trace.NewAggregate(err, clt.Close())
 	}
 	return clt, nil
 }
@@ -990,7 +993,7 @@ type remoteClientCache struct {
 	}
 }
 
-func (c *remoteClientCache) addRemoteClient(site reversetunnel.RemoteSite, remoteClient auth.ClientI) {
+func (c *remoteClientCache) addRemoteClient(site reversetunnel.RemoteSite, remoteClient auth.ClientI) error {
 	c.Lock()
 	defer c.Unlock()
 	if c.clients == nil {
@@ -999,10 +1002,15 @@ func (c *remoteClientCache) addRemoteClient(site reversetunnel.RemoteSite, remot
 			reversetunnel.RemoteSite
 		})
 	}
+	var err error
+	if c.clients[site.GetName()].ClientI != nil {
+		err = c.clients[site.GetName()].ClientI.Close()
+	}
 	c.clients[site.GetName()] = struct {
 		auth.ClientI
 		reversetunnel.RemoteSite
 	}{remoteClient, site}
+	return err
 }
 
 func (c *remoteClientCache) getRemoteClient(site reversetunnel.RemoteSite) (auth.ClientI, bool) {
